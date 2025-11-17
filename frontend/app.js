@@ -441,13 +441,14 @@ async function startTest() {
 }
 
 function generateContinuousText() {
-    // Generate text yang panjang (multiple sentences)
+    // Generate text optimal untuk area display (6-8 kalimat)
     let text = '';
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 6; i++) {
         const randomKata = state.allKata[Math.floor(Math.random() * state.allKata.length)];
-        text += randomKata.kata + ' ';
+        text += randomKata.kata;
+        if (i < 5) text += ' '; // Spasi antar kalimat
     }
-    state.testText = text.trim();
+    state.testText = text;
 }
 
 function displayText() {
@@ -474,6 +475,37 @@ function displayText() {
         
         return `<span class="${className}">${char === ' ' ? '&nbsp;' : char}</span>`;
     }).join('');
+    
+    // SMART SCROLLING: Keep cursor in view
+    scrollToCurrentPosition();
+}
+
+function scrollToCurrentPosition() {
+    const display = document.getElementById('text-display');
+    const currentSpan = display.querySelector('.char.current');
+    
+    if (!currentSpan) return;
+    
+    const containerHeight = display.clientHeight;
+    const containerTop = display.scrollTop;
+    const containerBottom = containerTop + containerHeight;
+    
+    const spanTop = currentSpan.offsetTop;
+    const spanBottom = spanTop + currentSpan.offsetHeight;
+    
+    // Scroll jika cursor tidak terlihat
+    if (spanTop < containerTop) {
+        // Cursor di atas viewport - scroll ke atas
+        display.scrollTop = spanTop - 50; // padding 50px dari atas
+    } else if (spanBottom > containerBottom) {
+        // Cursor di bawah viewport - scroll ke bawah
+        display.scrollTop = spanBottom - containerHeight + 50; // padding 50px dari bawah
+    }
+    
+    // Pastikan tidak scroll terlalu jauh ke atas
+    if (display.scrollTop < 0) {
+        display.scrollTop = 0;
+    }
 }
 
 function setupInput() {
@@ -518,11 +550,12 @@ function setupInput() {
         displayText();
         updateStats();
         
-        // Check if need more text
-        if (state.userInput.length >= state.testText.length - 50) {
-            // Add more text
-            const randomKata = state.allKata[Math.floor(Math.random() * state.allKata.length)];
-            state.testText += ' ' + randomKata.kata;
+        // Check if need more text (tambah teks saat mendekati akhir)
+        if (state.userInput.length >= state.testText.length - 100) {
+            // Add 2 sentences at once untuk smooth experience
+            const randomKata1 = state.allKata[Math.floor(Math.random() * state.allKata.length)];
+            const randomKata2 = state.allKata[Math.floor(Math.random() * state.allKata.length)];
+            state.testText += ' ' + randomKata1.kata + ' ' + randomKata2.kata;
             displayText();
         }
     });

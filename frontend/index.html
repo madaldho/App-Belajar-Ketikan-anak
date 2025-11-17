@@ -3,14 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Typing Test Professional - Kiosk Mode</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>Typing Test - Game Ngetik Cepat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        
+        .char { display: inline; font-size: 1.875rem; line-height: 3.5rem; transition: all 0.05s; }
+        .char.correct { color: #10B981; font-weight: 700; }
+        .char.incorrect { color: #EF4444; background: rgba(239, 68, 68, 0.2); border-radius: 4px; font-weight: 700; }
+        .char.current { 
+            background: #3B82F6; 
+            color: white; 
+            border-radius: 6px; 
+            padding: 4px 6px;
+            animation: blink 0.8s infinite;
+            font-weight: 700;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        .char.pending { color: #9CA3AF; }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.6; }
+        }
+        
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        #hidden-input { position: absolute; opacity: 0; pointer-events: none; }
+        
+        .text-display {
+            font-size: 1.875rem !important;
+            line-height: 3.5rem !important;
+            height: 280px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            padding: 1rem 0;
+        }
+        
+        .text-display::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .text-display::-webkit-scrollbar-track {
+            background: rgba(156, 163, 175, 0.1);
+        }
+        
+        .text-display::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 768px) { 
+            .char { font-size: 1.5rem; line-height: 3rem; } 
+            .text-display { font-size: 1.5rem !important; line-height: 3rem !important; }
+        }
+    </style>
 </head>
-<body>
-    <div id="app"></div>
-    <script src="app.js"></script>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+    <div id="app" class="min-h-screen"></div>
+    <script src="/static/app.js"></script>
 </body>
 </html>

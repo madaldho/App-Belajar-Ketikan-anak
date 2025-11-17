@@ -264,9 +264,9 @@ p { font-size: 1.25rem; line-height: 1.7; }
 
 /* ========== TEST SCREEN ========== */
 .test-container {
-    max-width: 1300px;
+    max-width: 1200px; /* Lebih compact untuk desktop */
     margin: 0 auto;
-    padding: 2.5rem 3rem;
+    padding: 2rem 2.5rem;
 }
 
 .test-header {
@@ -299,7 +299,7 @@ p { font-size: 1.25rem; line-height: 1.7; }
 }
 
 .timer-display {
-    font-size: 5rem;
+    font-size: 4rem; /* Sedikit lebih kecil untuk proporsional */
     font-weight: 900;
     color: #ef4444;
     font-family: 'JetBrains Mono', monospace;
@@ -335,6 +335,26 @@ p { font-size: 1.25rem; line-height: 1.7; }
     overflow-x: hidden;
     padding: 1rem 0;
     position: relative;
+    scroll-behavior: smooth; /* Smooth scrolling */
+}
+
+/* Hide scrollbar but keep functionality */
+.text-display::-webkit-scrollbar {
+    width: 6px;
+}
+
+.text-display::-webkit-scrollbar-track {
+    background: rgba(156, 163, 175, 0.1);
+    border-radius: 3px;
+}
+
+.text-display::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.4);
+    border-radius: 3px;
+}
+
+.text-display::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.6);
 }
 
 /* Character States */
@@ -360,11 +380,31 @@ p { font-size: 1.25rem; line-height: 1.7; }
 .char.current {
     background: #3b82f6;
     color: white;
-    border-radius: 6px;
-    padding: 4px 6px;
+    border-radius: 8px;
+    padding: 4px 8px;
     animation: blink 0.8s infinite;
     font-weight: 700;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+    position: relative;
+    z-index: 1;
+}
+
+.char.current::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    z-index: -1;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.1); opacity: 0.3; }
 }
 
 .char.pending {
@@ -380,8 +420,8 @@ p { font-size: 1.25rem; line-height: 1.7; }
 .stats-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 2.5rem;
-    padding-top: 3rem;
+    gap: 2rem;
+    padding-top: 2.5rem;
     border-top: 4px solid #e5e7eb;
 }
 
@@ -390,10 +430,10 @@ p { font-size: 1.25rem; line-height: 1.7; }
 }
 
 .stat-value {
-    font-size: 4rem;
+    font-size: 3rem; /* Lebih proporsional untuk desktop */
     font-weight: 900;
     line-height: 1;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .stat-value.wpm { color: #10b981; }

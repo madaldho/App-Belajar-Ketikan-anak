@@ -17,6 +17,16 @@ from backend.database import (
     Kelas, Siswa, Kata, HasilTes, Settings, AdminAccount
 )
 
+# Paths & config
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
+APP_PORT = int(os.getenv("APP_PORT", "8000"))
+DISPLAY_HOST = os.getenv(
+    "APP_DISPLAY_HOST",
+    "localhost" if APP_HOST in ("0.0.0.0", "::") else APP_HOST
+)
+
 # Initialize FastAPI
 app = FastAPI(title="Game Ngetik Cepat", version="1.0.0")
 
@@ -98,16 +108,19 @@ class SettingsUpdate(BaseModel):
 async def startup_event():
     """Initialize database on startup"""
     init_db()
-    print("🚀 Server started at http://localhost:5000")
+    print(f"🚀 Server started at http://{DISPLAY_HOST}:{APP_PORT}")
 
 # Serve static files (HTML, CSS, JS)
 @app.get("/")
 async def read_root():
     """Serve home page"""
-    return FileResponse("frontend/index.html")
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if not os.path.exists(index_path):
+        raise HTTPException(status_code=500, detail="Frontend index.html tidak ditemukan")
+    return FileResponse(index_path)
 
 # Mount static folder
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 # ============ AUTH ============
 
@@ -481,4 +494,4 @@ async def update_settings(settings: SettingsUpdate, db: Session = Depends(get_db
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=APP_HOST, port=APP_PORT)
