@@ -2,7 +2,7 @@
 FastAPI Main Application
 Game Ngetik Cepat - Kiosk Mode
 """
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -11,6 +11,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import os
+import openpyxl
+from io import BytesIO
 
 from backend.database import (
     get_db, init_db, 
@@ -102,6 +104,9 @@ class SettingsUpdate(BaseModel):
     key: str
     value: str
 
+class ResetRequest(BaseModel):
+    confirm: bool
+
 # ============ ENDPOINTS ============
 
 @app.on_event("startup")
@@ -128,8 +133,14 @@ app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Verify admin PIN"""
     admin = db.query(AdminAccount).first()
+    
+    # Auto-fix if admin missing (e.g. existing DB from older version)
     if not admin:
-        raise HTTPException(status_code=404, detail="Admin tidak ditemukan")
+        pin_bytes = "1234".encode('utf-8')
+        pin_hash = bcrypt.hashpw(pin_bytes, bcrypt.gensalt()).decode('utf-8')
+        admin = AdminAccount(pin_hash=pin_hash, nama="Admin")
+        db.add(admin)
+        db.commit()
     
     # Verify PIN using bcrypt
     pin_bytes = request.pin.encode('utf-8')
@@ -139,6 +150,57 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="PIN salah")
     
     return {"success": True, "message": "Login berhasil"}
+
+# ============ ADMIN FEATURES ============
+
+@app.post("/api/admin/reset-leaderboard")
+async def reset_leaderboard(request: ResetRequest, db: Session = Depends(get_db)):
+    """Reset leaderboard (delete all test results)"""
+    if not request.confirm:
+        raise HTTPException(status_code=400, detail="Konfirmasi diperlukan")
+    
+    db.query(HasilTes).delete()
+    db.commit()
+    return {"success": True, "message": "Leaderboard berhasil direset"}
+
+@app.post("/api/admin/import-siswa")
+async def import_siswa(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Import siswa from Excel"""
+    if not file.filename.endswith('.xlsx'):
+        raise HTTPException(status_code=400, detail="Format file harus .xlsx")
+    
+    try:
+        contents = await file.read()
+        wb = openpyxl.load_workbook(BytesIO(contents))
+        sheet = wb.active
+        
+        count = 0
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            if not row or not row[0]: continue
+            
+            nama = str(row[0]).strip()
+            kelas_nama = str(row[1]).strip() if len(row) > 1 and row[1] else "Umum"
+            
+            # Find or create kelas
+            kelas = db.query(Kelas).filter(Kelas.nama == kelas_nama).first()
+            if not kelas:
+                kelas = Kelas(nama=kelas_nama)
+                db.add(kelas)
+                db.commit()
+                db.refresh(kelas)
+            
+            # Find or create siswa
+            siswa = db.query(Siswa).filter(Siswa.nama == nama, Siswa.kelas_id == kelas.id).first()
+            if not siswa:
+                siswa = Siswa(nama=nama, kelas_id=kelas.id, avatar="👤")
+                db.add(siswa)
+                count += 1
+        
+        db.commit()
+        return {"success": True, "message": f"Berhasil import {count} siswa baru"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error import: {str(e)}")
 
 # ============ KELAS ============
 

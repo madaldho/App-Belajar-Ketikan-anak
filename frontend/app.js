@@ -1,14 +1,9 @@
 /**
- * TYPING TEST PROFESSIONAL - Version 2.0 FINAL
- * ✨ Text tetap, cursor hijau yang gerak (static display)
- * ✨ Salah tetap salah meski dihapus (permanent error tracking)
- * ✨ Scoring dengan penalty (skor = WPM*akurasi - error*penalty)
- * ✨ UI nyaman untuk anak-anak (2.5rem+, spacing 3.5rem+)
- * ✨ Admin history lengkap dengan tanggal & jam
- * ✨ Quote motivasi editable & real-time clock
+ * TYPING TEST PRO - CLEAN EDITION
+ * Logic & Templates
  */
 
-// ========== GLOBAL STATE ==========
+// GLOBAL STATE
 let state = {
     screen: 'home',
     siswa: null,
@@ -17,1083 +12,700 @@ let state = {
     allKata: [],
     settings: {},
     
-    // Test state
+    // Test Vars
     testText: '',
     userInput: '',
-    currentIndex: 0,
-    correctChars: 0,
-    totalErrors: 0, // PENTING: Total errors EVER (tidak berkurang meski dihapus)
     startTime: null,
     duration: 60,
     timer: null,
     finished: false,
+    totalErrors: 0,
+    lastCaretTop: 0, // To track line changes
     
-    // Admin
     adminMode: false
 };
 
-// ========== INITIALIZATION ==========
+// INIT
 document.addEventListener('DOMContentLoaded', () => {
+    loadHomeData();
+    startClock();
     renderScreen();
-    if (state.screen === 'home') {
-        loadHomeData();
-        startClock();
-    }
 });
 
-// ========== UTILITY: Clock & Date ==========
-function startClock() {
-    updateClock();
-    setInterval(updateClock, 1000);
-}
+// UTILS
+const $ = (id) => document.getElementById(id);
 
-function updateClock() {
-    const now = new Date();
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    const dayName = days[now.getDay()];
-    const date = now.getDate();
-    const month = months[now.getMonth()];
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    
-    const clockEl = document.getElementById('live-clock');
-    const dateEl = document.getElementById('live-date');
-    
-    if (clockEl) clockEl.textContent = `${hours}:${minutes}:${seconds}`;
-    if (dateEl) dateEl.textContent = `${dayName}, ${date} ${month} ${year}`;
-}
-
-// ========== NAVIGATION ==========
 function navigateTo(screen) {
+    if (state.timer) clearInterval(state.timer);
     state.screen = screen;
     renderScreen();
     
-    if (screen === 'home') {
-        loadHomeData();
-        startClock();
-    } else if (screen === 'pilih-siswa') {
-        loadSiswa();
-    } else if (screen === 'leaderboard-full') {
-        loadFullLeaderboard();
-    } else if (screen === 'admin') {
-        if (!state.adminMode) {
-            navigateTo('login-admin');
-        } else {
-            loadAdminDashboard();
-        }
-    }
+    if (screen === 'home') loadHomeData();
+    if (screen === 'pilih-siswa') loadSiswa();
 }
 
+function startClock() {
+    setInterval(() => {
+        const now = new Date();
+        if($('clock')) $('clock').textContent = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        if($('date')) $('date').textContent = now.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    }, 1000);
+}
+
+// RENDER ENGINE
 function renderScreen() {
-    const app = document.getElementById('app');
+    const app = $('app');
+    app.className = 'app-container fade-in';
     
-    if (state.screen === 'home') app.innerHTML = renderHome();
-    else if (state.screen === 'pilih-siswa') app.innerHTML = renderPilihSiswa();
-    else if (state.screen === 'countdown') app.innerHTML = renderCountdown();
-    else if (state.screen === 'tes') app.innerHTML = renderTes();
-    else if (state.screen === 'hasil') app.innerHTML = renderHasil();
-    else if (state.screen === 'leaderboard-full') app.innerHTML = renderLeaderboardFull();
-    else if (state.screen === 'login-admin') app.innerHTML = renderLoginAdmin();
-    else if (state.screen === 'admin') app.innerHTML = renderAdmin();
+    let html = '';
+    switch(state.screen) {
+        case 'home': html = renderHome(); break;
+        case 'pilih-siswa': html = renderPilihSiswa(); break;
+        case 'countdown': html = renderCountdown(); break;
+        case 'tes': html = renderTes(); break;
+        case 'hasil': html = renderHasil(); break;
+        case 'leaderboard-full': html = renderLeaderboardFull(); break;
+        case 'login-admin': html = renderLoginAdmin(); break;
+        case 'admin': html = renderAdmin(); break;
+    }
+    app.innerHTML = html;
 }
 
-// ========== HOME SCREEN ==========
+// TEMPLATES
 function renderHome() {
     return `
-        <div class="container section">
-            <!-- Header dengan Jam & Tanggal -->
-            <div class="home-header">
-                <div class="live-clock" id="live-clock">00:00:00</div>
-                <div class="live-date" id="live-date">Loading...</div>
-                
-                <h1 class="main-title">⚡ TYPING TEST</h1>
-                <p class="subtitle">Uji Kecepatan Mengetik Bahasa Indonesia</p>
-                
-                <!-- Quote Motivasi -->
-                <div class="quote-box">
-                    <p class="quote-text" id="quote-motivasi">
-                        "Lebih baik salah daripada tidak mencoba sama sekali"
-                    </p>
-                </div>
+        <header class="flex-between" style="padding: 1rem 0;">
+            <div>
+                <h1>TypingChamp</h1>
+                <p class="text-muted">Uji Kecepatan Mengetik</p>
             </div>
-            
-            <!-- Tombol Mulai -->
-            <div class="btn-start">
-                <button onclick="navigateTo('pilih-siswa')">
-                    <span class="btn-icon">🎯</span>
-                    MULAI TES
-                    <span class="btn-subtitle">Klik untuk memulai</span>
-                </button>
+            <div class="text-right">
+                <div id="clock" style="font-weight: 700; font-size: 1.5rem;">00:00</div>
+                <div id="date" class="text-muted">Loading...</div>
             </div>
-            
-            <!-- Stats & Leaderboard -->
-            <div class="stats-grid">
-                <div class="stats-card">
-                    <div class="stats-header">
-                        <span class="stats-icon">📊</span>
-                        STATISTIK HARI INI
-                    </div>
-                    <div>
-                        <div class="stats-item">
-                            <span class="stats-label">Total Pemain</span>
-                            <span class="stats-value" style="color: #2563eb" id="stat-pemain">0</span>
-                        </div>
-                        <div class="stats-item">
-                            <span class="stats-label">Rata-rata WPM</span>
-                            <span class="stats-value" style="color: #10b981" id="stat-wpm">0</span>
-                        </div>
-                        <div class="stats-item">
-                            <span class="stats-label">Akurasi Terbaik</span>
-                            <span class="stats-value" style="color: #8b5cf6"><span id="stat-akurasi">0</span>%</span>
-                        </div>
-                    </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Left: Hero & Stats -->
+            <div class="flex-col gap-4">
+                <div class="card hero-section">
+                    <h2 style="margin-bottom: 1rem;">Siap Mengetik?</h2>
+                    <p id="quote" style="font-style: italic; margin-bottom: 2rem;">"..."</p>
+                    
+                    <button onclick="navigateTo('pilih-siswa')" class="btn btn-primary btn-lg" style="width: 100%;">
+                        🚀 MULAI TES SEKARANG
+                    </button>
                 </div>
                 
-                <div class="stats-card">
-                    <div class="stats-header" style="justify-content: space-between;">
-                        <span style="display: flex; align-items: center; gap: 1rem;">
-                            <span class="stats-icon">🏆</span>
-                            TOP 5 LEADERBOARD
-                        </span>
-                        <button onclick="navigateTo('leaderboard-full')" style="color: #2563eb; font-weight: 700; font-size: 1.125rem; background: none; border: none; cursor: pointer;">
-                            Lihat Semua →
-                        </button>
+                <div class="card flex-between">
+                    <div class="text-center flex-1">
+                        <h3>Total Pemain</h3>
+                        <div class="stat-number" id="stat-pemain">0</div>
                     </div>
-                    <div id="leaderboard-preview">
-                        <div class="text-center" style="padding: 3rem 0; color: #9ca3af; font-size: 1.125rem;">Memuat...</div>
+                    <div class="text-center flex-1" style="border-left: 2px solid #f1f5f9;">
+                        <h3>Top WPM</h3>
+                        <div class="stat-number" style="color: var(--success);" id="stat-wpm">0</div>
                     </div>
                 </div>
             </div>
+
+            <!-- Right: Leaderboard -->
+            <div class="card">
+                <div class="flex-between" style="margin-bottom: 1rem;">
+                    <h3>🏆 Top Leaderboard</h3>
+                    <button onclick="navigateTo('leaderboard-full')" class="btn btn-secondary">Lihat Semua</button>
+                </div>
+                <div id="lb-preview">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="text-center" style="margin-top: 2rem;">
+            <button onclick="navigateTo('login-admin')" class="btn btn-secondary">Admin Panel</button>
+        </div>
+    `;
+}
+
+function renderPilihSiswa() {
+    return `
+        <div class="flex-between" style="margin-bottom: 2rem;">
+            <button onclick="navigateTo('home')" class="btn btn-secondary">← Kembali</button>
+            <h2>Pilih Pemain</h2>
+            <button onclick="tambahPemain()" class="btn btn-primary">➕ Tambah Pemain</button>
+        </div>
+        
+        <div class="card">
+            <div class="flex-center gap-2" style="margin-bottom: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 12px;">
+                <label style="font-weight: 600;">Filter Kelas:</label>
+                <select id="filter-kelas" onchange="filterSiswa()" class="input" style="max-width: 200px;">
+                    <option value="">Semua</option>
+                </select>
+            </div>
             
-            <!-- Footer -->
-            <div class="text-center">
-                <button onclick="navigateTo('login-admin')" class="btn btn-secondary" style="display: inline-flex; font-size: 1.25rem; padding: 1.25rem 2rem;">
-                    <span style="font-size: 1.75rem;">⚙️</span>
-                    Halaman Admin
-                </button>
+            <div id="siswa-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                Loading...
             </div>
         </div>
     `;
 }
+
+function renderCountdown() {
+    return `
+        <div class="flex-center flex-col" style="height: 80vh;">
+            <h2>${state.siswa.nama}</h2>
+            <p class="text-muted">Bersiap...</p>
+            <div id="count" style="font-size: 10rem; font-weight: 900; color: var(--primary);">3</div>
+        </div>
+    `;
+}
+
+function renderTes() {
+    return `
+        <div class="test-container">
+            <div class="flex-between" style="margin-bottom: 2px;">
+                <div>
+                    <h3 style="font-size: 1.8rem;">${state.siswa.nama}</h3>
+                    <span class="text-muted" style="font-weight: 600;">${state.siswa.kelas_nama}</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-muted">WAKTU</span>
+                    <div id="timer" style="font-size: 2.5rem; font-weight: 800; color: var(--error);">00:00</div>
+                </div>
+            </div>
+            
+            <div class="typing-area" id="text-area" onclick="$('hidden-input').focus()">
+                <div style="position: relative; z-index: 1;">
+                    <div id="caret"></div>
+                    <div id="text-content"></div>
+                </div>
+            </div>
+            <input type="text" id="hidden-input" style="opacity: 0; position: absolute;">
+            
+            <div class="card flex-between" style="margin-top: 2rem;">
+                <div class="text-center">
+                    <h3>WPM</h3>
+                    <div id="wpm" class="stat-number">0</div>
+                </div>
+                <div class="text-center">
+                    <h3>Akurasi</h3>
+                    <div id="acc" class="stat-number" style="color: var(--accent);">100%</div>
+                </div>
+                <div class="text-center">
+                    <h3>Salah</h3>
+                    <div id="err" class="stat-number" style="color: var(--error);">0</div>
+                </div>
+            </div>
+            
+            <div class="text-center" style="margin-top: 2rem;">
+                <button onclick="endTest(true)" class="btn btn-danger">Batalkan Tes</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderHasil() {
+    return `
+        <div class="flex-center flex-col" style="min-height: 80vh;">
+            <div id="confetti-origin"></div>
+            <div id="rank-badge"></div>
+            
+            <div class="card result-card">
+                <p class="text-muted">Hasil Tes</p>
+                <h2>${state.siswa.nama}</h2>
+                
+                <div class="score-big">${state.hasil.skor}</div>
+                <p style="font-weight: 700; letter-spacing: 1px;">TOTAL SKOR</p>
+                
+                <div class="flex-between" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #f1f5f9;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700;">${state.hasil.wpm}</div>
+                        <div class="text-muted">WPM</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700;">${state.hasil.akurasi}%</div>
+                        <div class="text-muted">Akurasi</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--error);">${state.totalErrors}</div>
+                        <div class="text-muted">Salah</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-center gap-4" style="margin-top: 2rem;">
+                <button onclick="mainLagi()" class="btn btn-primary btn-lg">🔄 Main Lagi</button>
+                <button onclick="navigateTo('home')" class="btn btn-secondary btn-lg">🏠 Home</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderAdmin() {
+    return `
+        <div class="app-container">
+            <div class="flex-between" style="margin-bottom: 2rem;">
+                <h2>Admin Dashboard</h2>
+                <div class="flex-center gap-2">
+                    <button onclick="loadAdminDashboard()" class="btn btn-secondary" title="Refresh Data">🔄</button>
+                    <button onclick="navigateTo('home')" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex-center gap-2" style="margin-bottom: 2rem; background: #fff; padding: 0.5rem; border-radius: 12px; box-shadow: var(--shadow);">
+                <button onclick="switchAdminTab('stats')" class="btn btn-primary" id="tab-stats">Overview</button>
+                <button onclick="switchAdminTab('students')" class="btn btn-secondary" id="tab-students">Siswa</button>
+                <button onclick="switchAdminTab('history')" class="btn btn-secondary" id="tab-history">History</button>
+                <button onclick="switchAdminTab('settings')" class="btn btn-secondary" id="tab-settings">Settings</button>
+                <button onclick="switchAdminTab('tools')" class="btn btn-secondary" id="tab-tools">Tools</button>
+            </div>
+            
+            <div id="admin-content" class="card">
+                Loading...
+            </div>
+        </div>
+    `;
+}
+
+// Admin Logic
+let adminTab = 'stats';
+
+async function loadAdminDashboard() {
+    switchAdminTab('stats');
+}
+
+async function switchAdminTab(tab) {
+    adminTab = tab;
+    
+    // Update Buttons
+    ['stats', 'students', 'history', 'settings', 'tools'].forEach(t => {
+        const btn = $(`tab-${t}`);
+        if(btn) btn.className = t === tab ? 'btn btn-primary' : 'btn btn-secondary';
+    });
+    
+    const content = $('admin-content');
+    content.innerHTML = 'Loading...';
+    
+    try {
+        if(tab === 'stats') {
+            const stats = await fetch('/api/statistik-harian').then(r=>r.json());
+            content.innerHTML = `
+                <div class="dashboard-grid">
+                    <div class="stat-box">
+                        <h3>Total Tes Hari Ini</h3>
+                        <div class="stat-number">${stats.total_tes}</div>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Total Pemain</h3>
+                        <div class="stat-number" style="color: var(--accent)">${stats.total_pemain}</div>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Rata-rata Skor</h3>
+                        <div class="stat-number" style="color: var(--warning)">${stats.rata_rata_skor}</div>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Top WPM</h3>
+                        <div class="stat-number" style="color: var(--success)">${stats.wpm_tertinggi}</div>
+                    </div>
+                </div>
+            `;
+        } 
+        else if(tab === 'students') {
+            const students = await fetch('/api/siswa').then(r=>r.json());
+            content.innerHTML = `
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; text-align: left;">
+                                <th style="padding: 1rem;">Nama</th>
+                                <th style="padding: 1rem;">Kelas</th>
+                                <th style="padding: 1rem;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(s => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 1rem;">${s.avatar} ${s.nama}</td>
+                                    <td style="padding: 1rem;">${s.kelas_nama}</td>
+                                    <td style="padding: 1rem;">
+                                        <button onclick="deleteSiswa(${s.id})" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Hapus</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        else if(tab === 'history') {
+            const history = await fetch('/api/hasil-tes-all').then(r=>r.json());
+            content.innerHTML = `
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; text-align: left;">
+                                <th style="padding: 1rem;">Waktu</th>
+                                <th style="padding: 1rem;">Nama</th>
+                                <th style="padding: 1rem;">WPM</th>
+                                <th style="padding: 1rem;">Skor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${history.map(h => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 1rem;">${new Date(h.created_at).toLocaleTimeString()}</td>
+                                    <td style="padding: 1rem;">${h.siswa_nama}</td>
+                                    <td style="padding: 1rem;">${h.wpm}</td>
+                                    <td style="padding: 1rem; font-weight: bold;">${h.skor}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        else if(tab === 'settings') {
+            const s = await fetch('/api/settings').then(r=>r.json());
+            content.innerHTML = `
+                <div class="flex-col gap-4" style="max-width: 600px; margin: 0 auto;">
+                    <div>
+                        <label style="font-weight: 700;">Quote Motivasi</label>
+                        <textarea id="set-quote" class="input" rows="3">${s.quote_motivasi || ''}</textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight: 700;">Durasi Tes (detik)</label>
+                        <input type="number" id="set-durasi" class="input" value="${s.durasi_tes || 60}">
+                    </div>
+                    <button onclick="saveSettings()" class="btn btn-primary">Simpan Pengaturan</button>
+                </div>
+            `;
+        }
+        else if(tab === 'tools') {
+            content.innerHTML = `
+                <div class="dashboard-grid">
+                    <div class="stat-box" style="text-align: left; background: white; border: 1px solid #eee;">
+                        <h3>📁 Import Siswa</h3>
+                        <p class="text-muted" style="margin: 1rem 0;">Upload Excel (.xlsx) dengan kolom: Nama, Kelas</p>
+                        
+                        <div class="flex-center gap-2" style="margin-bottom: 1rem; justify-content: flex-start;">
+                            <a href="/static/template_siswa.xlsx" download class="btn btn-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                📄 Download Template
+                            </a>
+                        </div>
+
+                        <input type="file" id="excel-file" class="input" style="margin-bottom: 1rem;">
+                        <button onclick="uploadSiswa()" class="btn btn-primary">Upload Data</button>
+                    </div>
+                    
+                    <div class="stat-box" style="text-align: left; background: #fff1f2; border: 1px solid #fecaca;">
+                        <h3 style="color: var(--error);">⚠️ Danger Zone</h3>
+                        <p class="text-muted" style="margin: 1rem 0;">Hapus semua data hasil tes. Data siswa tetap aman.</p>
+                        <button onclick="resetLeaderboard()" class="btn btn-danger">RESET LEADERBOARD</button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch(e) {
+        content.innerHTML = `<p class="text-center text-muted">Gagal memuat data: ${e}</p>`;
+    }
+}
+
+async function deleteSiswa(id) {
+    if(!confirm("Hapus siswa ini?")) return;
+    try {
+        await fetch(`/api/siswa/${id}`, {method: 'DELETE'});
+        switchAdminTab('students');
+    } catch(e) { alert("Gagal hapus"); }
+}
+
+async function saveSettings() {
+    const q = $('set-quote').value;
+    const d = $('set-durasi').value;
+    await fetch('/api/settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:'quote_motivasi', value:q})});
+    await fetch('/api/settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:'durasi_tes', value:d})});
+    alert('Tersimpan!');
+}
+
+function renderLoginAdmin() {
+    return `
+        <div class="flex-center" style="height: 80vh;">
+            <div class="card text-center" style="width: 400px;">
+                <h2>Login Admin</h2>
+                <input type="password" id="pin" class="input text-center" style="font-size: 2rem; margin: 2rem 0;" placeholder="PIN">
+                <button onclick="handleLogin()" class="btn btn-primary" style="width: 100%;">MASUK</button>
+                <button onclick="navigateTo('home')" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">Batal</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderLeaderboardFull() {
+    // Trigger load data
+    setTimeout(loadFullLeaderboardData, 100);
+    return `
+        <div class="app-container">
+            <div class="flex-between" style="margin-bottom: 1rem;">
+                 <button onclick="navigateTo('home')" class="btn btn-secondary">← Kembali</button>
+                 <h2>Leaderboard</h2>
+            </div>
+            <div class="card" id="lb-full" style="flex: 1; overflow-y: auto;">Loading...</div>
+        </div>
+    `;
+}
+
+async function loadFullLeaderboardData() {
+     try {
+         const lb = await fetch('/api/leaderboard?limit=50').then(r=>r.json());
+         $('lb-full').innerHTML = lb.map((x,i) => `
+            <div class="lb-item">
+                <div class="flex-center gap-4">
+                    <span class="lb-rank" style="font-size: 1.2rem;">#${i+1}</span> 
+                    <span style="font-size: 1.5rem;">${x.avatar}</span> 
+                    <div class="flex-col">
+                        <span class="lb-name">${x.siswa_nama}</span>
+                        <span class="text-muted" style="font-size: 0.8rem;">${x.kelas_nama}</span>
+                    </div>
+                </div>
+                <div class="lb-score" style="font-size: 1.2rem;">${x.skor}</div>
+            </div>
+         `).join('');
+     } catch(e) {
+         $('lb-full').innerHTML = '<p class="text-center">Gagal memuat data</p>';
+     }
+}
+
+// ========== RESTORED LOGIC FUNCTIONS ==========
 
 async function loadHomeData() {
     try {
-        // Load settings
-        state.settings = await fetch('/api/settings').then(r => r.json());
-        const quoteEl = document.getElementById('quote-motivasi');
-        if (quoteEl && state.settings.quote_motivasi) {
-            quoteEl.textContent = `"${state.settings.quote_motivasi}"`;
-        }
+        const s = await fetch('/api/settings').then(r=>r.json());
+        if(s.quote_motivasi) $('quote').textContent = `"${s.quote_motivasi}"`;
         
-        // Load stats
-        const stats = await fetch('/api/statistik-harian').then(r => r.json());
-        document.getElementById('stat-pemain').textContent = stats.total_pemain;
-        document.getElementById('stat-wpm').textContent = Math.round(stats.wpm_tertinggi);
-        document.getElementById('stat-akurasi').textContent = stats.akurasi_terbaik.toFixed(1);
+        const st = await fetch('/api/statistik-harian').then(r=>r.json());
+        $('stat-pemain').textContent = st.total_pemain;
+        $('stat-wpm').textContent = Math.round(st.wpm_tertinggi);
         
-        // Load leaderboard preview
-        const leaderboard = await fetch('/api/leaderboard?limit=5').then(r => r.json());
-        displayLeaderboardPreview(leaderboard);
-        
-        // Auto refresh every 30 seconds
-        setTimeout(() => {
-            if (state.screen === 'home') loadHomeData();
-        }, 30000);
-    } catch (error) {
-        console.error('Error loading home data:', error);
-    }
-}
-
-function displayLeaderboardPreview(data) {
-    const container = document.getElementById('leaderboard-preview');
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div class="text-center" style="padding: 3rem 0; color: #9ca3af; font-size: 1.125rem;">Belum ada data. Mulai tes pertama kamu!</div>';
-        return;
-    }
-    
-    container.innerHTML = data.map((item, i) => {
-        const medals = ['🥇', '🥈', '🥉'];
-        const isTop3 = i < 3;
-        const itemClass = isTop3 ? 'leaderboard-item top3' : 'leaderboard-item regular';
-        const rankClass = isTop3 ? 'rank-badge top3' : 'rank-badge regular';
-        
-        return `
-            <div class="${itemClass}">
-                <div class="leaderboard-left">
-                    <span class="${rankClass}">
-                        ${medals[i] || item.rank}
-                    </span>
-                    <span class="player-avatar">${item.avatar}</span>
-                    <div>
-                        <div class="player-name">${item.siswa_nama}</div>
-                        <div class="player-class">Kelas ${item.kelas_nama}</div>
-                    </div>
+        const lb = await fetch('/api/leaderboard?limit=5').then(r=>r.json());
+        $('lb-preview').innerHTML = lb.length ? lb.map((x,i) => `
+            <div class="lb-item">
+                <div class="flex-center gap-2">
+                    <span class="lb-rank">#${i+1}</span>
+                    <span>${x.avatar}</span>
+                    <span class="lb-name">${x.siswa_nama}</span>
                 </div>
-                <div class="leaderboard-right">
-                    <div class="player-score">${item.skor} pts</div>
-                    <div class="player-details">${item.wpm} WPM · ${item.akurasi}%</div>
-                </div>
+                <div class="lb-score">${x.skor}</div>
             </div>
-        `;
-    }).join('');
-}
-
-// ========== PILIH SISWA ==========
-function renderPilihSiswa() {
-    return `
-        <div class="container section">
-            <button onclick="navigateTo('home')" class="btn btn-secondary" style="font-size: 1.25rem; padding: 1rem 1.5rem; display: inline-flex; margin-bottom: 2rem;">
-                <span style="font-size: 2rem;">←</span> Kembali
-            </button>
-            
-            <div class="text-center mb-8">
-                <h2 style="font-size: 5rem; font-weight: 900; color: #1f2937; margin-bottom: 3rem;">Pilih Nama Kamu</h2>
-                <div style="display: inline-flex; align-items: center; gap: 1.5rem; background: white; border-radius: 2rem; padding: 1.5rem 3rem; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 3px solid #e5e7eb;">
-                    <label style="color: #1f2937; font-weight: 900; font-size: 1.5rem;">Kelas:</label>
-                    <select id="filter-kelas" onchange="filterSiswa()" 
-                            style="background: transparent; border: none; outline: none; font-weight: 900; color: #2563eb; cursor: pointer; font-size: 1.75rem;">
-                        <option value="">Semua Kelas</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div id="siswa-grid" class="student-grid" style="margin-bottom: 3rem;">
-                <div style="grid-column: 1 / -1; text-center; padding: 4rem 0; color: #9ca3af; font-size: 1.5rem;">Memuat...</div>
-            </div>
-            
-            <div class="text-center">
-                <button onclick="guruIkut()" class="btn btn-secondary" style="font-size: 1.5rem; padding: 1.5rem 3rem;">
-                    👨‍🏫 Guru Ikutan Tes
-                </button>
-            </div>
-        </div>
-    `;
+        `).join('') : '<p class="text-center text-muted">Belum ada data</p>';
+    } catch(e) {}
 }
 
 async function loadSiswa() {
-    try {
-        state.allKelas = await fetch('/api/kelas').then(r => r.json());
-        state.allSiswa = await fetch('/api/siswa').then(r => r.json());
-        
-        const select = document.getElementById('filter-kelas');
-        select.innerHTML = '<option value="">Semua Kelas</option>' +
-            state.allKelas.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
-        
-        displaySiswa(state.allSiswa);
-    } catch (error) {
-        console.error('Error loading siswa:', error);
-    }
+    state.allKelas = await fetch('/api/kelas').then(r=>r.json());
+    state.allSiswa = await fetch('/api/siswa').then(r=>r.json());
+    $('filter-kelas').innerHTML = '<option value="">Semua</option>' + state.allKelas.map(k=>`<option value="${k.id}">${k.nama}</option>`).join('');
+    displaySiswa(state.allSiswa);
 }
 
-function displaySiswa(siswa) {
-    const grid = document.getElementById('siswa-grid');
-    if (!siswa || siswa.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1 / -1; text-center; padding: 4rem 0; color: #9ca3af; font-size: 1.5rem;">Belum ada siswa</div>';
-        return;
-    }
-    
-    grid.innerHTML = siswa.map(s => `
-        <button onclick='selectSiswa(${JSON.stringify(s)})' class="student-card">
-            <div class="student-avatar">${s.avatar}</div>
-            <div class="student-name">${s.nama}</div>
-            <div class="student-class">Kelas ${s.kelas_nama}</div>
-        </button>
+function displaySiswa(list) {
+    $('siswa-grid').innerHTML = list.map(s => `
+        <div onclick='pilihSiswa(${JSON.stringify(s)})' class="card text-center" style="cursor: pointer; padding: 1rem;">
+            <div style="font-size: 2.5rem;">${s.avatar}</div>
+            <div style="font-weight: 700;">${s.nama}</div>
+            <div class="text-muted">${s.kelas_nama}</div>
+        </div>
     `).join('');
 }
 
 function filterSiswa() {
-    const kelasId = document.getElementById('filter-kelas').value;
-    const filtered = kelasId ? state.allSiswa.filter(s => s.kelas_id == kelasId) : state.allSiswa;
-    displaySiswa(filtered);
+    const id = $('filter-kelas').value;
+    displaySiswa(id ? state.allSiswa.filter(s=>s.kelas_id == id) : state.allSiswa);
 }
 
-function selectSiswa(siswa) {
-    state.siswa = siswa;
-    startCountdown();
+async function tambahPemain() {
+    const nama = prompt("Nama Pemain:");
+    if(!nama) return;
+    try {
+        let cls = state.allKelas.find(k=>k.nama==='Umum');
+        if(!cls) cls = await fetch('/api/kelas', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nama:'Umum'})}).then(r=>r.json());
+        
+        const s = await fetch('/api/siswa', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nama, kelas_id:cls.id, avatar:'👤'})}).then(r=>r.json());
+        pilihSiswa(s);
+    } catch(e) { alert("Gagal: " + e); }
 }
 
-function guruIkut() {
-    const nama = prompt('Nama Guru:');
-    if (nama) {
-        state.siswa = { id: 0, nama, kelas_nama: 'Guru', avatar: '👨‍🏫' };
-        startCountdown();
-    }
-}
-
-// ========== COUNTDOWN ==========
-function renderCountdown() {
-    return `
-        <div class="container mx-auto px-4 py-20 text-center">
-            <h3 class="text-3xl text-gray-600 mb-3 font-semibold">Pemain:</h3>
-            <h2 class="text-6xl font-black text-gray-800 mb-20">
-                ${state.siswa.nama} <span class="text-gray-500">(${state.siswa.kelas_nama})</span>
-            </h2>
-            <p class="text-3xl text-gray-600 mb-10 font-semibold">Bersiap...</p>
-            <div id="countdown-num" class="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-12 animate-pulse">3</div>
-            <p class="text-2xl text-gray-500 font-semibold">Letakkan jari di keyboard</p>
-        </div>
-    `;
-}
-
-function startCountdown() {
+function pilihSiswa(s) {
+    state.siswa = s;
     state.screen = 'countdown';
     renderScreen();
-    
-    let count = 3;
-    const interval = setInterval(() => {
-        count--;
-        const el = document.getElementById('countdown-num');
-        if (count > 0) {
-            el.textContent = count;
-        } else {
-            clearInterval(interval);
-            el.textContent = 'MULAI!';
-            setTimeout(() => startTest(), 500);
-        }
+    let n = 3;
+    const t = setInterval(() => {
+        n--;
+        if(n>0) $('count').textContent = n;
+        else { clearInterval(t); startTest(); }
     }, 1000);
-}
-
-// ========== TES SCREEN (TEXT TETAP, CURSOR GERAK) ==========
-function renderTes() {
-    return `
-        <div class="test-container">
-            <div class="test-header">
-                <div class="player-info">
-                    ${state.siswa.nama} <span>(${state.siswa.kelas_nama})</span>
-                </div>
-                <div class="timer-box">
-                    <div class="timer-label">Sisa Waktu</div>
-                    <div id="timer" class="timer-display">01:00</div>
-                </div>
-            </div>
-            
-            <div class="text-box">
-                <!-- TEXT DISPLAY: Tetap di posisinya, yang gerak cuma highlight -->
-                <div id="text-display" class="text-display" 
-                     onclick="document.getElementById('hidden-input').focus()">
-                </div>
-                
-                <input type="text" 
-                       id="hidden-input" 
-                       autocomplete="off"
-                       autocapitalize="off"
-                       autocorrect="off"
-                       spellcheck="false"
-                       style="position: absolute; opacity: 0;">
-                
-                <!-- STATS BAR -->
-                <div class="stats-bar">
-                    <div class="stat-item">
-                        <div class="stat-value wpm" id="wpm-display">0</div>
-                        <div class="stat-label">WPM</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value accuracy"><span id="accuracy-display">100</span>%</div>
-                        <div class="stat-label">AKURASI</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value correct" id="correct-display">0</div>
-                        <div class="stat-label">BENAR</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value error" id="error-display">0</div>
-                        <div class="stat-label">SALAH</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="text-center" style="color: #6b7280; font-size: 1.125rem; font-weight: 600;">
-                <p>💡 Klik area teks untuk mulai · Tekan <kbd style="background: #d1d5db; padding: 0.5rem 1rem; border-radius: 0.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 700;">ESC</kbd> untuk berhenti</p>
-            </div>
-        </div>
-    `;
 }
 
 async function startTest() {
     state.screen = 'tes';
     renderScreen();
     
-    // Reset state
     state.userInput = '';
-    state.currentIndex = 0;
-    state.correctChars = 0;
-    state.totalErrors = 0; // PENTING: Total error tidak berkurang
+    state.totalErrors = 0;
     state.startTime = Date.now();
     state.finished = false;
+    state.lastCaretTop = 0; // Reset scroll tracking
     
-    // Load kata untuk generate continuous text
     try {
-        state.allKata = await fetch('/api/kata').then(r => r.json());
-        generateContinuousText();
+        const kata = await fetch('/api/kata').then(r=>r.json());
+        let t = [];
+        for(let i=0; i<12; i++) t.push(kata[Math.floor(Math.random()*kata.length)].kata);
+        state.testText = t.join(' ');
+        renderText();
         
-        displayText();
-        startTimer();
-        setupInput();
-    } catch (error) {
-        console.error('Error loading test:', error);
-        alert('Gagal memuat teks. Kembali ke home.');
-        navigateTo('home');
-    }
+        const input = $('hidden-input');
+        input.value = '';
+        input.focus();
+        input.onblur = () => setTimeout(()=>input.focus(), 10);
+        input.oninput = (e) => handleInput(e.target.value);
+        
+        let time = 60;
+        $('timer').textContent = "01:00";
+        state.timer = setInterval(() => {
+            time--;
+            const m = Math.floor(time/60);
+            const s = time%60;
+            $('timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            if(time<=0) endTest();
+        }, 1000);
+    } catch(e) { alert("Error"); navigateTo('home'); }
 }
 
-function generateContinuousText() {
-    // Generate text optimal untuk area display (6-8 kalimat)
-    let text = '';
-    for (let i = 0; i < 6; i++) {
-        const randomKata = state.allKata[Math.floor(Math.random() * state.allKata.length)];
-        text += randomKata.kata;
-        if (i < 5) text += ' '; // Spasi antar kalimat
-    }
-    state.testText = text;
-}
-
-function displayText() {
-    const display = document.getElementById('text-display');
+function renderText() {
     const chars = state.testText.split('');
-    
-    display.innerHTML = chars.map((char, i) => {
-        let className = 'char';
-        
-        if (i < state.userInput.length) {
-            // Sudah diketik
-            if (state.userInput[i] === char) {
-                className += ' correct'; // Hijau
-            } else {
-                className += ' incorrect'; // Merah
-            }
-        } else if (i === state.userInput.length) {
-            // Current position (cursor)
-            className += ' current';
-        } else {
-            // Belum diketik
-            className += ' pending';
-        }
-        
-        return `<span class="${className}">${char === ' ' ? '&nbsp;' : char}</span>`;
+    const html = chars.map((c,i) => {
+        let cls = 'char';
+        if(i < state.userInput.length) cls += state.userInput[i] === c ? ' correct' : ' incorrect';
+        else cls += ' pending';
+        // Use normal space to allow wrapping, pre-wrap handles visualization
+        return `<span class="${cls}" id="char-${i}">${c}</span>`;
     }).join('');
+    $('text-content').innerHTML = html;
     
-    // SMART SCROLLING: Keep cursor in view
-    scrollToCurrentPosition();
-}
-
-function scrollToCurrentPosition() {
-    const display = document.getElementById('text-display');
-    const currentSpan = display.querySelector('.char.current');
+    // Caret & Auto-Scroll Logic
+    const idx = state.userInput.length;
+    const el = $(`char-${idx}`);
+    const caret = $('caret');
+    const area = $('text-area');
     
-    if (!currentSpan) return;
-    
-    const containerHeight = display.clientHeight;
-    const containerTop = display.scrollTop;
-    const containerBottom = containerTop + containerHeight;
-    
-    const spanTop = currentSpan.offsetTop;
-    const spanBottom = spanTop + currentSpan.offsetHeight;
-    
-    // Scroll jika cursor tidak terlihat
-    if (spanTop < containerTop) {
-        // Cursor di atas viewport - scroll ke atas
-        display.scrollTop = spanTop - 50; // padding 50px dari atas
-    } else if (spanBottom > containerBottom) {
-        // Cursor di bawah viewport - scroll ke bawah
-        display.scrollTop = spanBottom - containerHeight + 50; // padding 50px dari bawah
+    if(el) {
+        // Move Caret
+        caret.style.display = 'block';
+        caret.style.left = el.offsetLeft + 'px';
+        caret.style.top = el.offsetTop + 'px';
+        
+        // Focus Line Logic (Typewriter Scrolling)
+        // Keep active line near top (20px)
+        const offsetTarget = 20; 
+        const targetScroll = el.offsetTop - offsetTarget;
+        
+        // Only scroll if we deviate significantly to avoid jitter
+        if (Math.abs(area.scrollTop - targetScroll) > 10) {
+             area.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+        }
+    } else {
+        // End of text handling
+        const last = $(`char-${state.testText.length-1}`);
+        if(last) {
+            caret.style.left = (last.offsetLeft + last.offsetWidth) + 'px';
+            caret.style.top = last.offsetTop + 'px';
+        }
     }
+}
+
+function handleInput(val) {
+    if(state.finished) return;
+    if(val.length > state.userInput.length) {
+        if(val[val.length-1] !== state.testText[val.length-1]) state.totalErrors++;
+    }
+    state.userInput = val;
+    renderText();
     
-    // Pastikan tidak scroll terlalu jauh ke atas
-    if (display.scrollTop < 0) {
-        display.scrollTop = 0;
+    // Stats
+    const m = (Date.now() - state.startTime)/60000;
+    const wpm = m>0 ? Math.round((val.length/5)/m) : 0;
+    const acc = val.length>0 ? Math.round(((val.length-state.totalErrors)/val.length)*100) : 100;
+    $('wpm').textContent = wpm;
+    $('acc').textContent = acc + '%';
+    $('err').textContent = state.totalErrors;
+    
+    if(val.length >= state.testText.length - 5) {
+        // Add more text logic if needed
     }
 }
 
-function setupInput() {
-    const input = document.getElementById('hidden-input');
-    input.value = '';
-    input.focus();
-    
-    let previousLength = 0;
-    
-    input.addEventListener('input', (e) => {
-        if (state.finished) return;
-        
-        const currentInput = e.target.value;
-        state.userInput = currentInput;
-        
-        // Deteksi jika user menghapus karakter (backspace)
-        if (currentInput.length < previousLength) {
-            // User backspace, tapi error count TIDAK BERKURANG
-            // Ini yang diminta: "salah tetap salah"
-        } else {
-            // User nambah karakter baru
-            const newCharIndex = currentInput.length - 1;
-            const typedChar = currentInput[newCharIndex];
-            const targetChar = state.testText[newCharIndex];
-            
-            if (typedChar !== targetChar) {
-                // SALAH - increment total errors
-                state.totalErrors++;
-            }
-        }
-        
-        previousLength = currentInput.length;
-        
-        // Hitung correct chars saat ini
-        state.correctChars = 0;
-        for (let i = 0; i < state.userInput.length; i++) {
-            if (state.userInput[i] === state.testText[i]) {
-                state.correctChars++;
-            }
-        }
-        
-        displayText();
-        updateStats();
-        
-        // Check if need more text (tambah teks saat mendekati akhir)
-        if (state.userInput.length >= state.testText.length - 100) {
-            // Add 2 sentences at once untuk smooth experience
-            const randomKata1 = state.allKata[Math.floor(Math.random() * state.allKata.length)];
-            const randomKata2 = state.allKata[Math.floor(Math.random() * state.allKata.length)];
-            state.testText += ' ' + randomKata1.kata + ' ' + randomKata2.kata;
-            displayText();
-        }
-    });
-    
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            if (confirm('Yakin ingin berhenti?')) endTest();
-        }
-    });
-}
-
-function startTimer() {
-    let timeLeft = state.duration;
-    const timerEl = document.getElementById('timer');
-    
-    state.timer = setInterval(() => {
-        timeLeft--;
-        const mins = Math.floor(timeLeft / 60);
-        const secs = timeLeft % 60;
-        timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        
-        if (timeLeft <= 0) endTest();
-    }, 1000);
-}
-
-function updateStats() {
-    // WPM: characters typed / 5 / minutes elapsed
-    const elapsed = (Date.now() - state.startTime) / 1000 / 60;
-    const wpm = elapsed > 0 ? Math.round(state.userInput.length / 5 / elapsed) : 0;
-    
-    // Akurasi: (total typed - total errors) / total typed * 100
-    // PENTING: totalErrors tidak berkurang meski dihapus
-    const accuracy = state.userInput.length > 0
-        ? Math.max(0, ((state.userInput.length - state.totalErrors) / state.userInput.length) * 100).toFixed(1)
-        : 100;
-    
-    document.getElementById('wpm-display').textContent = wpm;
-    document.getElementById('accuracy-display').textContent = accuracy;
-    document.getElementById('correct-display').textContent = state.correctChars;
-    document.getElementById('error-display').textContent = state.totalErrors;
-}
-
-async function endTest() {
-    if (state.finished) return;
+async function endTest(cancel) {
     state.finished = true;
+    clearInterval(state.timer);
+    if(cancel) return navigateTo('home');
     
-    if (state.timer) clearInterval(state.timer);
-    
-    const elapsed = (Date.now() - state.startTime) / 1000;
-    const elapsedMin = elapsed / 60;
-    
-    // WPM: total characters typed / 5 / minutes
-    const wpm = elapsedMin > 0 ? state.userInput.length / 5 / elapsedMin : 0;
-    
-    // Akurasi: (typed - errors) / typed * 100
-    const accuracy = state.userInput.length > 0
-        ? Math.max(0, ((state.userInput.length - state.totalErrors) / state.userInput.length) * 100)
-        : 0;
-    
-    // Skor dengan PENALTY: (WPM * akurasi) - (error * penalty)
-    const penalty = parseInt(state.settings.penalty_salah || 5);
-    const baseScore = wpm * accuracy;
-    const penaltyScore = state.totalErrors * penalty;
-    const skor = Math.max(0, Math.round(baseScore - penaltyScore));
+    const m = (Date.now() - state.startTime)/60000;
+    const wpm = m>0 ? (state.userInput.length/5)/m : 0;
+    const acc = state.userInput.length>0 ? ((state.userInput.length-state.totalErrors)/state.userInput.length)*100 : 0;
+    const score = Math.max(0, Math.round((wpm*acc) - (state.totalErrors * 5)));
     
     state.hasil = {
-        siswa_id: state.siswa.id,
-        durasi: Math.round(elapsed),
-        kata_benar: Math.floor(state.correctChars / 5),
-        kata_salah: Math.floor(state.totalErrors / 5),
-        wpm: parseFloat(wpm.toFixed(1)),
-        akurasi: parseFloat(accuracy.toFixed(1)),
-        skor
+        siswa_id: state.siswa.id, durasi:60, kata_benar:0, kata_salah:0,
+        wpm: parseFloat(wpm.toFixed(1)), akurasi: parseFloat(acc.toFixed(1)), skor: score
     };
     
-    // Save if not guru
-    if (state.siswa.id !== 0) {
-        try {
-            await fetch('/api/hasil-tes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(state.hasil)
-            });
-        } catch (error) {
-            console.error('Error saving result:', error);
-        }
-    }
-    
+    await fetch('/api/hasil-tes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state.hasil)});
     state.screen = 'hasil';
     renderScreen();
-    showConfetti();
-    startAutoReturn();
-}
-
-// ========== HASIL SCREEN ==========
-function renderHasil() {
-    return `
-        <div class="result-container">
-            <div id="confetti"></div>
-            
-            <div class="result-header">
-                <h2 class="result-title">🎉 HASIL TES 🎉</h2>
-                <p class="result-player">
-                    ${state.siswa.nama} <span>(${state.siswa.kelas_nama})</span>
-                </p>
-            </div>
-            
-            <div class="result-card">
-                <div class="result-grid">
-                    <div class="result-item">
-                        <div class="result-number">${state.hasil.wpm.toFixed(0)}</div>
-                        <div class="result-label">WPM</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-number">${state.hasil.akurasi.toFixed(1)}%</div>
-                        <div class="result-label">Akurasi</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-number">${state.hasil.skor}</div>
-                        <div class="result-label">SKOR</div>
-                    </div>
-                </div>
-                
-                <div class="result-details">
-                    <p class="result-detail-text">Total Karakter: <span>${state.userInput.length}</span></p>
-                    <p class="result-detail-text">Total Salah: <span>${state.totalErrors}</span> (Penalty: -${state.totalErrors * (parseInt(state.settings.penalty_salah || 5))} poin)</p>
-                </div>
-            </div>
-            
-            <div id="rank-notif" style="margin-bottom: 3rem;"></div>
-            
-            <div class="action-buttons">
-                <button onclick="mainLagi()" class="btn btn-primary">
-                    🔄 Main Lagi
-                </button>
-                <button onclick="navigateTo('leaderboard-full')" class="btn btn-secondary">
-                    🏆 Leaderboard
-                </button>
-            </div>
-            
-            <div class="text-center" style="color: #6b7280; font-size: 1.5rem; font-weight: 700;">
-                <p>Kembali ke home dalam <span id="auto-counter" style="font-weight: 900; color: #2563eb; font-size: 2rem;">10</span> detik...</p>
-            </div>
-        </div>
-    `;
-}
-
-function showConfetti() {
-    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-    const container = document.getElementById('confetti');
     
-    for (let i = 0; i < 100; i++) {
-        const confetti = document.createElement('div');
-        confetti.style.cssText = `
-            position: fixed;
-            width: 12px;
-            height: 12px;
-            background: ${colors[Math.floor(Math.random() * colors.length)]};
-            left: ${Math.random() * 100}vw;
-            top: -20px;
-            animation: fall ${2 + Math.random() * 2}s linear forwards;
-            z-index: 9999;
-        `;
-        container.appendChild(confetti);
-        setTimeout(() => confetti.remove(), 4500);
-    }
-}
-
-function startAutoReturn() {
-    let count = 10;
-    const interval = setInterval(() => {
-        count--;
-        const el = document.getElementById('auto-counter');
-        if (el) el.textContent = count;
-        if (count <= 0) {
-            clearInterval(interval);
-            navigateTo('home');
-        }
-    }, 1000);
+    // Rank Check
+    const lb = await fetch('/api/leaderboard?limit=100').then(r=>r.json());
+    const rank = lb.findIndex(x=>x.skor === score && x.siswa_id === state.siswa.id) + 1;
+    if(rank > 0 && rank <= 10) $('rank-badge').innerHTML = `<div class="rank-badge">🏆 JUARA #${rank}</div>`;
+    
+    if(window.confetti) confetti();
 }
 
 function mainLagi() {
-    // Langsung mulai countdown dengan siswa yang sama (tidak perlu pilih ulang)
-    startCountdown();
+    state.timer = null;
+    state.userInput = '';
+    startTest();
 }
 
-// ========== LEADERBOARD FULL ==========
-function renderLeaderboardFull() {
-    return `
-        <div class="container mx-auto px-4 py-10 max-w-6xl">
-            <button onclick="navigateTo('home')" class="mb-8 text-gray-600 hover:text-gray-800 font-bold inline-flex items-center gap-3 px-6 py-3 rounded-2xl hover:bg-white/50 transition-all text-xl">
-                <span class="text-3xl">←</span> Kembali
-            </button>
-            
-            <div class="text-center mb-12">
-                <h2 class="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 mb-4">
-                    🏆 LEADERBOARD
-                </h2>
-                <p class="text-2xl text-gray-600 font-bold">Ranking Pemain Terbaik</p>
-            </div>
-            
-            <div class="flex justify-center gap-4 mb-10">
-                <select id="filter-kelas-lb" onchange="loadFullLeaderboard()" 
-                        class="px-10 py-5 rounded-3xl font-black bg-white shadow-xl cursor-pointer border-2 border-gray-300 outline-none text-2xl">
-                    <option value="">Semua Kelas</option>
-                </select>
-            </div>
-            
-            <div id="leaderboard-list" class="space-y-5">
-                <div class="text-center py-16 text-gray-500 text-2xl">Memuat...</div>
-            </div>
-        </div>
-    `;
+async function handleLogin() {
+    const pin = $('pin').value;
+    const r = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin})});
+    if(r.ok) { state.adminMode = true; navigateTo('admin'); }
+    else alert("PIN Salah");
 }
 
-async function loadFullLeaderboard() {
-    try {
-        const kelasId = document.getElementById('filter-kelas-lb')?.value || '';
-        const url = kelasId ? `/api/leaderboard?kelas_id=${kelasId}&limit=50` : '/api/leaderboard?limit=50';
-        const data = await fetch(url).then(r => r.json());
-        
-        const list = document.getElementById('leaderboard-list');
-        if (!data || data.length === 0) {
-            list.innerHTML = '<div class="text-center py-16 text-gray-500 text-2xl">Belum ada data</div>';
-            return;
-        }
-        
-        list.innerHTML = data.map((item, i) => {
-            const medals = ['🥇', '🥈', '🥉'];
-            const bgClass = i < 3 
-                ? 'bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 border-4 border-amber-400 shadow-2xl' 
-                : 'bg-white border-2 border-gray-300 shadow-lg';
-            
-            return `
-                <div class="${bgClass} rounded-3xl p-8 transition-all hover:scale-102">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-6 flex-1">
-                            <span class="text-6xl font-black ${i < 3 ? 'text-amber-600' : 'text-gray-400'} min-w-[80px] text-center">
-                                ${medals[i] || item.rank}
-                            </span>
-                            <span class="text-5xl">${item.avatar}</span>
-                            <div>
-                                <div class="font-black text-3xl text-gray-800">${item.siswa_nama}</div>
-                                <div class="text-xl text-gray-600 font-bold">Kelas ${item.kelas_nama}</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-5xl font-black text-amber-600 mb-2">${item.skor} POIN</div>
-                            <div class="text-xl text-gray-600 font-bold">${item.wpm} WPM · ${item.akurasi}% Akurasi</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        // Load kelas for filter
-        if (!state.allKelas.length) {
-            state.allKelas = await fetch('/api/kelas').then(r => r.json());
-            const select = document.getElementById('filter-kelas-lb');
-            if (select) {
-                select.innerHTML = '<option value="">Semua Kelas</option>' +
-                    state.allKelas.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading leaderboard:', error);
-    }
-}
-
-// ========== LOGIN ADMIN ==========
-function renderLoginAdmin() {
-    return `
-        <div class="container mx-auto px-4 py-20 max-w-md">
-            <button onclick="navigateTo('home')" class="mb-8 text-gray-600 hover:text-gray-800 font-bold inline-flex items-center gap-2 text-xl">
-                <span class="text-3xl">←</span> Kembali
-            </button>
-            
-            <div class="bg-white rounded-3xl shadow-2xl p-12">
-                <h2 class="text-5xl font-black text-gray-800 mb-10 text-center">🔐 Login Admin</h2>
-                
-                <form onsubmit="loginAdmin(event)" class="space-y-8">
-                    <div>
-                        <label class="block text-gray-700 font-black mb-4 text-2xl">PIN Admin:</label>
-                        <input type="password" 
-                               id="admin-pin" 
-                               maxlength="4"
-                               class="w-full px-8 py-6 border-4 border-gray-300 rounded-3xl focus:border-blue-500 focus:outline-none text-5xl text-center mono"
-                               placeholder="••••"
-                               required>
-                    </div>
-                    
-                    <button type="submit" 
-                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-6 rounded-3xl shadow-2xl transition-all text-2xl">
-                        MASUK
-                    </button>
-                    
-                    <p class="text-lg text-gray-500 text-center font-semibold">
-                        PIN default: <code class="bg-gray-200 px-4 py-2 rounded-xl font-mono font-black text-xl">1234</code>
-                    </p>
-                    
-                    <div id="login-error" class="hidden text-red-500 text-center font-black text-xl"></div>
-                </form>
-            </div>
-        </div>
-    `;
-}
-
-async function loginAdmin(e) {
-    e.preventDefault();
-    const pin = document.getElementById('admin-pin').value;
-    const errorDiv = document.getElementById('login-error');
+async function uploadSiswa() {
+    const f = $('excel-file').files[0];
+    if(!f) return alert("Pilih file dulu!");
+    
+    const fd = new FormData(); fd.append('file', f);
     
     try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pin })
-        });
+        const res = await fetch('/api/admin/import-siswa', {method:'POST', body:fd});
+        const data = await res.json();
         
-        if (response.ok) {
-            state.adminMode = true;
-            navigateTo('admin');
+        if(res.ok) {
+            alert(data.message);
+            $('excel-file').value = ''; // Reset input
         } else {
-            const data = await response.json();
-            errorDiv.textContent = data.detail || 'PIN salah!';
-            errorDiv.classList.remove('hidden');
-            setTimeout(() => errorDiv.classList.add('hidden'), 3000);
+            alert("Gagal: " + (data.detail || "Terjadi kesalahan"));
         }
-    } catch (error) {
-        errorDiv.textContent = 'Terjadi kesalahan';
-        errorDiv.classList.remove('hidden');
+    } catch(e) { 
+        alert("Error Upload: " + e); 
     }
 }
 
-// ========== ADMIN DASHBOARD ==========
-function renderAdmin() {
-    return `
-        <div class="container mx-auto px-4 py-8 max-w-7xl">
-            <div class="flex justify-between items-center mb-10">
-                <h1 class="text-6xl font-black text-gray-800">Admin Dashboard</h1>
-                <button onclick="state.adminMode = false; navigateTo('home')" 
-                        class="bg-red-500 hover:bg-red-600 text-white font-black py-4 px-8 rounded-2xl text-xl">
-                    Logout
-                </button>
-            </div>
-            
-            <!-- Tabs -->
-            <div class="flex gap-3 mb-8 overflow-x-auto">
-                <button onclick="showAdminTab('history')" id="tab-history" 
-                        class="px-8 py-4 rounded-2xl font-black transition-all text-xl bg-blue-600 text-white">
-                    📜 History Tes
-                </button>
-                <button onclick="showAdminTab('settings')" id="tab-settings" 
-                        class="px-8 py-4 rounded-2xl font-black transition-all text-xl bg-gray-200 text-gray-700">
-                    ⚙️ Pengaturan
-                </button>
-                <button onclick="showAdminTab('siswa')" id="tab-siswa" 
-                        class="px-8 py-4 rounded-2xl font-black transition-all text-xl bg-gray-200 text-gray-700">
-                    👥 Siswa & Kelas
-                </button>
-                <button onclick="showAdminTab('kata')" id="tab-kata" 
-                        class="px-8 py-4 rounded-2xl font-black transition-all text-xl bg-gray-200 text-gray-700">
-                    📝 Kalimat Tes
-                </button>
-            </div>
-            
-            <!-- Content -->
-            <div id="admin-content" class="bg-white rounded-3xl shadow-xl p-10 border-2 border-gray-200">
-                <div class="text-center py-16 text-gray-500 text-2xl">Memuat...</div>
-            </div>
-        </div>
-    `;
-}
-
-async function loadAdminDashboard() {
-    showAdminTab('history');
-}
-
-async function showAdminTab(tab) {
-    // Update tab buttons
-    document.querySelectorAll('[id^="tab-"]').forEach(btn => {
-        btn.className = 'px-8 py-4 rounded-2xl font-black transition-all text-xl bg-gray-200 text-gray-700';
-    });
-    document.getElementById(`tab-${tab}`).className = 'px-8 py-4 rounded-2xl font-black transition-all text-xl bg-blue-600 text-white';
-    
-    const content = document.getElementById('admin-content');
-    
-    if (tab === 'history') {
-        content.innerHTML = '<div class="text-center py-16 text-2xl">Memuat history...</div>';
-        await loadHistoryTab();
-    } else if (tab === 'settings') {
-        content.innerHTML = '<div class="text-center py-16 text-2xl">Memuat settings...</div>';
-        await loadSettingsTab();
-    } else if (tab === 'siswa') {
-        content.innerHTML = '<div class="text-center py-16 text-2xl">Tab Siswa & Kelas (Coming Soon)</div>';
-    } else if (tab === 'kata') {
-        content.innerHTML = '<div class="text-center py-16 text-2xl">Tab Kalimat Tes (Coming Soon)</div>';
+async function resetLeaderboard() {
+    if(confirm("Reset?")) {
+        await fetch('/api/admin/reset-leaderboard', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({confirm:true})});
+        alert("Reset Berhasil");
     }
 }
-
-async function loadHistoryTab() {
-    try {
-        // Get all results with siswa info
-        const response = await fetch('/api/hasil-tes-all');
-        let results = [];
-        
-        if (response.ok) {
-            results = await response.json();
-        }
-        
-        const content = document.getElementById('admin-content');
-        
-        if (!results || results.length === 0) {
-            content.innerHTML = '<div class="text-center py-16 text-gray-500 text-2xl">Belum ada history tes</div>';
-            return;
-        }
-        
-        content.innerHTML = `
-            <h3 class="text-4xl font-black text-gray-800 mb-8">📜 History Semua Tes</h3>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gray-100 border-b-4 border-gray-300">
-                            <th class="px-6 py-5 text-left font-black text-xl">Tanggal & Jam</th>
-                            <th class="px-6 py-5 text-left font-black text-xl">Nama</th>
-                            <th class="px-6 py-5 text-left font-black text-xl">Kelas</th>
-                            <th class="px-6 py-5 text-center font-black text-xl">WPM</th>
-                            <th class="px-6 py-5 text-center font-black text-xl">Akurasi</th>
-                            <th class="px-6 py-5 text-center font-black text-xl">Skor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${results.map(r => {
-                            const date = new Date(r.created_at);
-                            const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                            const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                            
-                            return `
-                                <tr class="border-b-2 border-gray-200 hover:bg-gray-50 transition-all">
-                                    <td class="px-6 py-5 font-semibold text-lg">
-                                        <div class="text-gray-800">${dateStr}</div>
-                                        <div class="text-gray-600 text-base">${timeStr}</div>
-                                    </td>
-                                    <td class="px-6 py-5 font-bold text-xl text-gray-800">${r.siswa_nama}</td>
-                                    <td class="px-6 py-5 font-semibold text-lg text-gray-600">${r.kelas_nama}</td>
-                                    <td class="px-6 py-5 text-center font-black text-2xl text-emerald-600">${r.wpm}</td>
-                                    <td class="px-6 py-5 text-center font-black text-2xl text-blue-600">${r.akurasi}%</td>
-                                    <td class="px-6 py-5 text-center font-black text-2xl text-amber-600">${r.skor}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error loading history:', error);
-        const content = document.getElementById('admin-content');
-        content.innerHTML = '<div class="text-center py-16 text-red-500 text-2xl">Error memuat history</div>';
-    }
-}
-
-async function loadSettingsTab() {
-    try {
-        state.settings = await fetch('/api/settings').then(r => r.json());
-        
-        const content = document.getElementById('admin-content');
-        content.innerHTML = `
-            <h3 class="text-4xl font-black text-gray-800 mb-8">⚙️ Pengaturan Aplikasi</h3>
-            
-            <form onsubmit="saveSettings(event)" class="space-y-8">
-                <div class="bg-blue-50 border-2 border-blue-300 rounded-3xl p-8">
-                    <label class="block text-gray-800 font-black mb-4 text-2xl">💬 Quote Motivasi (di Home):</label>
-                    <textarea id="setting-quote" rows="3" 
-                              class="w-full px-6 py-4 border-4 border-gray-300 rounded-2xl focus:border-blue-500 focus:outline-none text-2xl"
-                              placeholder="Masukkan quote motivasi...">${state.settings.quote_motivasi || ''}</textarea>
-                    <p class="text-gray-600 mt-3 text-lg">Contoh: "Lebih baik salah daripada tidak mencoba sama sekali"</p>
-                </div>
-                
-                <div class="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-8">
-                    <label class="block text-gray-800 font-black mb-4 text-2xl">⏱️ Durasi Tes (detik):</label>
-                    <input type="number" id="setting-durasi" min="30" max="300" 
-                           class="w-full px-6 py-4 border-4 border-gray-300 rounded-2xl focus:border-blue-500 focus:outline-none text-3xl font-bold text-center"
-                           value="${state.settings.durasi_tes || 60}">
-                </div>
-                
-                <div class="bg-red-50 border-2 border-red-300 rounded-3xl p-8">
-                    <label class="block text-gray-800 font-black mb-4 text-2xl">❌ Penalty per Kesalahan (poin):</label>
-                    <input type="number" id="setting-penalty" min="0" max="50" 
-                           class="w-full px-6 py-4 border-4 border-gray-300 rounded-2xl focus:border-blue-500 focus:outline-none text-3xl font-bold text-center"
-                           value="${state.settings.penalty_salah || 5}">
-                    <p class="text-gray-600 mt-3 text-lg">Setiap karakter salah mengurangi skor sebanyak ini</p>
-                </div>
-                
-                <button type="submit" 
-                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-6 rounded-3xl shadow-2xl transition-all text-3xl">
-                    💾 SIMPAN PENGATURAN
-                </button>
-            </form>
-        `;
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-async function saveSettings(e) {
-    e.preventDefault();
-    
-    const quote = document.getElementById('setting-quote').value;
-    const durasi = document.getElementById('setting-durasi').value;
-    const penalty = document.getElementById('setting-penalty').value;
-    
-    try {
-        await fetch('/api/settings', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'quote_motivasi', value: quote })
-        });
-        
-        await fetch('/api/settings', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'durasi_tes', value: durasi })
-        });
-        
-        await fetch('/api/settings', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'penalty_salah', value: penalty })
-        });
-        
-        alert('✅ Pengaturan berhasil disimpan!');
-        state.settings = await fetch('/api/settings').then(r => r.json());
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('❌ Gagal menyimpan pengaturan');
-    }
-}
-
-// CSS animations sudah ada di style.css
