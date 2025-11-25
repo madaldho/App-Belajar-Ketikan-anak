@@ -1,5 +1,5 @@
 /**
- * TYPING TEST PRO - CLEAN EDITION
+
  * Logic & Templates
  */
 
@@ -76,7 +76,7 @@ function renderHome() {
     return `
         <header class="flex-between" style="padding: 1rem 0;">
             <div>
-                <h1>TypingChamp</h1>
+                <h1>YukMengetik</h1>
                 <p class="text-muted">Uji Kecepatan Mengetik</p>
             </div>
             <div class="text-right">
