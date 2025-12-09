@@ -203,8 +203,13 @@ function renderTes() {
 }
 
 function renderHasil() {
+    // Calculate scoring breakdown for explanation
+    const baseScore = state.hasil.wpm * 10;
+    const accuracyMultiplier = state.hasil.akurasi / 100;
+    const errorPenalty = state.totalErrors * 3;
+    
     return `
-        <div class="flex-center flex-col" style="min-height: 80vh;">
+        <div class="result-screen-container">
             <div id="confetti-origin"></div>
             <div id="rank-badge"></div>
             
@@ -215,18 +220,46 @@ function renderHasil() {
                 <div class="score-big">${state.hasil.skor}</div>
                 <p style="font-weight: 700; letter-spacing: 1px;">TOTAL SKOR</p>
                 
-                <div class="flex-between" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #f1f5f9;">
-                    <div>
-                        <div style="font-size: 1.5rem; font-weight: 700;">${state.hasil.wpm}</div>
-                        <div class="text-muted">WPM</div>
+                <!-- Main Stats -->
+                <div class="result-stats-grid">
+                    <div class="result-stat-box stat-wpm">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-value">${state.hasil.wpm}</div>
+                        <div class="stat-label">WPM</div>
+                        <div class="stat-desc">Kata per Menit</div>
                     </div>
-                    <div>
-                        <div style="font-size: 1.5rem; font-weight: 700;">${state.hasil.akurasi}%</div>
-                        <div class="text-muted">Akurasi</div>
+                    <div class="result-stat-box stat-acc">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-value">${state.hasil.akurasi}%</div>
+                        <div class="stat-label">Akurasi</div>
+                        <div class="stat-desc">Ketepatan Ketik</div>
                     </div>
-                    <div>
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--error);">${state.totalErrors}</div>
-                        <div class="text-muted">Salah</div>
+                    <div class="result-stat-box stat-err">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-value">${state.totalErrors}</div>
+                        <div class="stat-label">Kesalahan</div>
+                        <div class="stat-desc">Karakter Salah</div>
+                    </div>
+                </div>
+                
+                <!-- Scoring Breakdown -->
+                <div class="scoring-breakdown">
+                    <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;">📊 Perhitungan Skor</h3>
+                    <div class="breakdown-item">
+                        <span>Kecepatan (${state.hasil.wpm} WPM × 10)</span>
+                        <span class="breakdown-value">+${Math.round(baseScore)}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>Bonus Akurasi (×${(accuracyMultiplier * 100).toFixed(0)}%)</span>
+                        <span class="breakdown-value">×${accuracyMultiplier.toFixed(2)}</span>
+                    </div>
+                    <div class="breakdown-item breakdown-penalty">
+                        <span>Penalti Kesalahan (${state.totalErrors} × 3)</span>
+                        <span class="breakdown-value">-${errorPenalty}</span>
+                    </div>
+                    <div class="breakdown-total">
+                        <span>Total Akhir</span>
+                        <span class="breakdown-value">${state.hasil.skor}</span>
                     </div>
                 </div>
             </div>
@@ -455,19 +488,40 @@ function renderLeaderboardFull() {
 async function loadFullLeaderboardData() {
      try {
          const lb = await fetch('/api/leaderboard?limit=50').then(r=>r.json());
-         $('lb-full').innerHTML = lb.map((x,i) => `
-            <div class="lb-item">
-                <div class="flex-center gap-4">
-                    <span class="lb-rank" style="font-size: 1.2rem;">#${i+1}</span> 
-                    <span style="font-size: 1.5rem;">${x.avatar}</span> 
-                    <div class="flex-col">
-                        <span class="lb-name">${x.siswa_nama}</span>
-                        <span class="text-muted" style="font-size: 0.8rem;">${x.kelas_nama}</span>
+         $('lb-full').innerHTML = lb.map((x,i) => {
+             // Medal for top 3
+             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+             const rankClass = i < 3 ? 'lb-item-top' : 'lb-item';
+             
+             return `
+                <div class="${rankClass}">
+                    <div class="flex-center gap-4" style="flex: 1;">
+                        <span class="lb-rank" style="font-size: 1.2rem;">${medal || '#'+(i+1)}</span> 
+                        <span style="font-size: 1.5rem;">${x.avatar}</span> 
+                        <div class="flex-col" style="flex: 1;">
+                            <span class="lb-name">${x.siswa_nama}</span>
+                            <span class="text-muted" style="font-size: 0.8rem;">${x.kelas_nama}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Badges -->
+                    <div class="lb-stats-badges">
+                        <div class="stat-badge stat-badge-wpm">
+                            <span class="badge-label">WPM</span>
+                            <span class="badge-value">${x.wpm}</span>
+                        </div>
+                        <div class="stat-badge stat-badge-acc">
+                            <span class="badge-label">Akurasi</span>
+                            <span class="badge-value">${x.akurasi}%</span>
+                        </div>
+                        <div class="stat-badge stat-badge-score">
+                            <span class="badge-label">Skor</span>
+                            <span class="badge-value">${x.skor}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="lb-score" style="font-size: 1.2rem;">${x.skor}</div>
-            </div>
-         `).join('');
+             `;
+         }).join('');
      } catch(e) {
          $('lb-full').innerHTML = '<p class="text-center">Gagal memuat data</p>';
      }
@@ -485,16 +539,23 @@ async function loadHomeData() {
         $('stat-wpm').textContent = Math.round(st.wpm_tertinggi);
         
         const lb = await fetch('/api/leaderboard?limit=5').then(r=>r.json());
-        $('lb-preview').innerHTML = lb.length ? lb.map((x,i) => `
-            <div class="lb-item">
-                <div class="flex-center gap-2">
-                    <span class="lb-rank">#${i+1}</span>
-                    <span>${x.avatar}</span>
-                    <span class="lb-name">${x.siswa_nama}</span>
+        $('lb-preview').innerHTML = lb.length ? lb.map((x,i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            return `
+                <div class="lb-item">
+                    <div class="flex-center gap-2" style="flex: 1;">
+                        <span class="lb-rank">${medal || '#'+(i+1)}</span>
+                        <span>${x.avatar}</span>
+                        <span class="lb-name">${x.siswa_nama}</span>
+                    </div>
+                    <div class="lb-stats-badges-compact">
+                        <span class="badge-mini badge-wpm">${x.wpm} WPM</span>
+                        <span class="badge-mini badge-acc">${x.akurasi}%</span>
+                        <span class="lb-score">${x.skor}</span>
+                    </div>
                 </div>
-                <div class="lb-score">${x.skor}</div>
-            </div>
-        `).join('') : '<p class="text-center text-muted">Belum ada data</p>';
+            `;
+        }).join('') : '<p class="text-center text-muted">Belum ada data</p>';
     } catch(e) {}
 }
 
@@ -603,8 +664,8 @@ function renderText() {
         caret.style.top = el.offsetTop + 'px';
         
         // Focus Line Logic (Typewriter Scrolling)
-        // Keep active line near top (20px)
-        const offsetTarget = 20; 
+        // Keep active line near top with minimal gap
+        const offsetTarget = 10; // Reduced from 20px to 10px for tighter spacing
         const targetScroll = el.offsetTop - offsetTarget;
         
         // Only scroll if we deviate significantly to avoid jitter
@@ -629,10 +690,20 @@ function handleInput(val) {
     state.userInput = val;
     renderText();
     
-    // Stats
-    const m = (Date.now() - state.startTime)/60000;
-    const wpm = m>0 ? Math.round((val.length/5)/m) : 0;
-    const acc = val.length>0 ? Math.round(((val.length-state.totalErrors)/val.length)*100) : 100;
+    // Stats - IMPROVED CALCULATION
+    const elapsedMinutes = (Date.now() - state.startTime) / 60000;
+    
+    // WPM: Characters typed / 5 (standard word length) / minutes elapsed
+    // Only count correct characters for accurate WPM
+    const correctChars = val.length - state.totalErrors;
+    const wpm = elapsedMinutes > 0 ? Math.round((correctChars / 5) / elapsedMinutes) : 0;
+    
+    // KPM (Karakter Per Menit): Total correct characters per minute
+    const kpm = elapsedMinutes > 0 ? Math.round(correctChars / elapsedMinutes) : 0;
+    
+    // Accuracy: Correct characters / Total typed
+    const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
+    
     $('wpm').textContent = wpm;
     $('acc').textContent = acc + '%';
     $('err').textContent = state.totalErrors;
@@ -647,14 +718,35 @@ async function endTest(cancel) {
     clearInterval(state.timer);
     if(cancel) return navigateTo('home');
     
-    const m = (Date.now() - state.startTime)/60000;
-    const wpm = m>0 ? (state.userInput.length/5)/m : 0;
-    const acc = state.userInput.length>0 ? ((state.userInput.length-state.totalErrors)/state.userInput.length)*100 : 0;
-    const score = Math.max(0, Math.round((wpm*acc) - (state.totalErrors * 5)));
+    // IMPROVED SCORING SYSTEM
+    const elapsedMinutes = (Date.now() - state.startTime) / 60000;
+    const totalTyped = state.userInput.length;
+    const correctChars = totalTyped - state.totalErrors;
+    
+    // WPM: Correct characters / 5 / minutes
+    const wpm = elapsedMinutes > 0 ? (correctChars / 5) / elapsedMinutes : 0;
+    
+    // Accuracy: Correct / Total typed
+    const acc = totalTyped > 0 ? (correctChars / totalTyped) * 100 : 0;
+    
+    // SCORING FORMULA (Production Ready):
+    // Base Score = WPM * 10 (to make numbers bigger)
+    // Accuracy Multiplier = (Accuracy / 100) - rewards high accuracy
+    // Error Penalty = -3 points per error (reduced from -5)
+    // Final = (WPM * 10 * AccuracyMultiplier) - (Errors * 3)
+    const baseScore = wpm * 10;
+    const accuracyMultiplier = acc / 100;
+    const errorPenalty = state.totalErrors * 3;
+    const score = Math.max(0, Math.round((baseScore * accuracyMultiplier) - errorPenalty));
     
     state.hasil = {
-        siswa_id: state.siswa.id, durasi:60, kata_benar:0, kata_salah:0,
-        wpm: parseFloat(wpm.toFixed(1)), akurasi: parseFloat(acc.toFixed(1)), skor: score
+        siswa_id: state.siswa.id, 
+        durasi: 60, 
+        kata_benar: correctChars, 
+        kata_salah: state.totalErrors,
+        wpm: parseFloat(wpm.toFixed(1)), 
+        akurasi: parseFloat(acc.toFixed(1)), 
+        skor: score
     };
     
     await fetch('/api/hasil-tes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state.hasil)});

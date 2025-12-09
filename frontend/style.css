@@ -179,11 +179,136 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
     justify-content: space-between;
     padding: 1rem;
     border-bottom: 1px solid #f1f5f9;
+    gap: 1rem;
+    transition: background 0.2s;
 }
+.lb-item:hover { background: #f8fafc; }
 .lb-item:last-child { border-bottom: none; }
-.lb-rank { width: 30px; font-weight: 800; color: var(--text-muted); }
-.lb-name { font-weight: 600; }
-.lb-score { font-weight: 700; color: var(--primary); }
+
+/* Top 3 Special Styling */
+.lb-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 1rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+}
+
+.lb-rank { 
+    min-width: 40px; 
+    font-weight: 800; 
+    color: var(--text-muted); 
+    text-align: center;
+    font-size: 1.1rem;
+}
+.lb-name { font-weight: 600; font-size: 1rem; }
+.lb-score { 
+    font-weight: 700; 
+    color: var(--primary); 
+    font-size: 1.5rem;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* Stats Badges - Full Leaderboard */
+.lb-stats-badges {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.stat-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    min-width: 70px;
+}
+
+.stat-badge-wpm {
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+}
+
+.stat-badge-acc {
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+}
+
+.stat-badge-score {
+    background: #e0e7ff;
+    border: 1px solid #a5b4fc;
+}
+
+.badge-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.badge-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 0.1rem;
+}
+
+/* Compact Badges - Home Preview */
+.lb-stats-badges-compact {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.badge-mini {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-wpm {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-acc {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* Responsive Leaderboard */
+@media (max-width: 768px) {
+    .lb-item, .lb-item-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .lb-stats-badges {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .stat-badge {
+        flex: 1;
+        min-width: 60px;
+    }
+    
+    .lb-score {
+        font-size: 1.25rem;
+    }
+}
 
 /* TEST SCREEN */
 .test-container {
@@ -198,12 +323,12 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
 
 .typing-area {
     background: white;
-    padding: 1rem 3rem;
+    padding: 1.5rem 2rem;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 2rem; /* Bigger font for readability */
-    line-height: 1.8;
+    font-size: 1.75rem; /* Slightly smaller for better spacing */
+    line-height: 1.4; /* Reduced line height for tighter spacing */
     
     /* TYPEWRITER MODE SETTINGS */
     height: 300px; /* Increased height */
@@ -227,7 +352,7 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
     top: 0;
     left: 0;
     right: 0;
-    height: 40px;
+    height: 30px;
     background: linear-gradient(to bottom, white 10%, rgba(255,255,255,0) 100%);
     z-index: 20;
     pointer-events: none;
@@ -240,8 +365,8 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
 /* CARET & CHARS */
 #caret {
     position: absolute;
-    width: 4px;
-    height: 1.4em;
+    width: 3px;
+    height: 1.3em;
     background: var(--primary);
     animation: blink 1s infinite;
     transition: all 0.1s ease-out;
@@ -257,19 +382,31 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
 .char.pending { opacity: 0.5; }
 
 /* RESULTS */
+.result-screen-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
 .result-card {
     text-align: center;
-    padding: 3rem;
-    max-width: 600px;
+    padding: 2rem;
+    max-width: 700px;
+    width: 100%;
     margin: 0 auto;
 }
 
 .score-big {
-    font-size: 5rem;
+    font-size: 4rem;
     font-weight: 900;
     color: var(--primary);
     line-height: 1;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
 }
 
 .rank-badge {
@@ -280,6 +417,129 @@ h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-muted); text-transf
     font-weight: 700;
     display: inline-block;
     margin-bottom: 1rem;
+}
+
+/* Result Stats Grid */
+.result-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.result-stat-box {
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.result-stat-box:hover {
+    transform: translateY(-2px);
+}
+
+.stat-wpm {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 2px solid #93c5fd;
+}
+
+.stat-acc {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 2px solid #6ee7b7;
+}
+
+.stat-err {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 2px solid #fca5a5;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+.stat-desc {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+/* Scoring Breakdown */
+.scoring-breakdown {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    text-align: left;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
+.breakdown-penalty {
+    color: var(--error);
+}
+
+.breakdown-value {
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.breakdown-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    margin-top: 0.4rem;
+    border-top: 2px solid #e2e8f0;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--primary);
+}
+
+/* Responsive Results */
+@media (max-width: 768px) {
+    .result-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .result-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .score-big {
+        font-size: 3.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
 }
 
 /* ANIMATIONS */

@@ -1,0 +1,12 @@
+# Desktop Application Dependencies
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.10.0
+sqlalchemy>=2.0.36
+python-multipart>=0.0.20
+bcrypt>=4.0.0
+openpyxl>=3.1.0
+
+# Desktop-specific
+pywebview>=5.0.0
+pyinstaller>=6.0.0
