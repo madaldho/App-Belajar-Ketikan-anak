@@ -15,6 +15,7 @@ pyinstaller ^
     --name=YukMengetik ^
     --onefile ^
     --windowed ^
+    --icon=app_icon.ico ^
     --add-data="frontend;frontend" ^
     --add-data="backend;backend" ^
     --hidden-import=uvicorn.logging ^

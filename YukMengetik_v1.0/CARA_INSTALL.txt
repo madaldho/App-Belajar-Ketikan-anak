@@ -1,0 +1,69 @@
+===============================================================
+    YUKMENGENTIK - CARA INSTALL & PAKAI
+===============================================================
+
+📦 UNTUK USER BIASA (TANPA CODING)
+===============================================================
+
+1. Copy file YukMengetik.exe ke komputer Anda
+2. Double-click YukMengetik.exe
+3. Tunggu beberapa detik, aplikasi akan terbuka
+4. Selesai! Aplikasi siap digunakan
+
+CATATAN PENTING:
+- Tidak perlu install Python atau software lain
+- Database akan dibuat otomatis saat pertama kali jalan
+- File database (ketikan.db) akan ada di folder yang sama
+- PIN Admin default: 098123
+
+FITUR UTAMA:
+✅ Tes mengetik dengan feedback real-time (hijau/merah)
+✅ Leaderboard otomatis
+✅ Admin panel untuk kelola siswa & kelas
+✅ Import siswa dari Excel
+✅ Offline, tidak perlu internet
+
+===============================================================
+🔧 TROUBLESHOOTING
+===============================================================
+
+MASALAH: Antivirus block aplikasi
+SOLUSI: Whitelist file YukMengetik.exe di antivirus Anda
+        (Ini normal untuk .exe baru, bukan virus)
+
+MASALAH: Error saat buka aplikasi
+SOLUSI: Klik kanan > Run as Administrator
+
+MASALAH: Port sudah dipakai
+SOLUSI: Aplikasi akan otomatis cari port lain
+
+MASALAH: Database corrupt
+SOLUSI: Hapus file ketikan.db, akan dibuat ulang otomatis
+
+===============================================================
+📚 CARA PAKAI
+===============================================================
+
+UNTUK SISWA:
+1. Klik "MULAI TES SEKARANG"
+2. Pilih nama Anda dari grid
+3. Tunggu countdown 3-2-1
+4. Mulai mengetik!
+5. Lihat hasil & ranking Anda
+
+UNTUK GURU/ADMIN:
+1. Klik "Admin Panel" di home
+2. Masukkan PIN: 098123
+3. Kelola siswa, kelas, dan lihat statistik
+4. Import siswa dari Excel (download template dulu)
+
+===============================================================
+📞 SUPPORT
+===============================================================
+
+Untuk pertanyaan atau masalah:
+- Baca README.md untuk dokumentasi lengkap
+- Lihat folder dokumentasi untuk panduan teknis
+
+Version: 1.0.0
+Dibuat dengan ❤️ untuk pendidikan Indonesia

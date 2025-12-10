@@ -110,9 +110,9 @@ def init_db():
         ]
         db.add_all(default_settings)
         
-        # Default admin PIN: 1234
+        # Default admin PIN: 098123
         import bcrypt
-        pin_bytes = "1234".encode('utf-8')
+        pin_bytes = "098123".encode('utf-8')
         pin_hash = bcrypt.hashpw(pin_bytes, bcrypt.gensalt()).decode('utf-8')
         admin = AdminAccount(
             pin_hash=pin_hash,
@@ -182,7 +182,7 @@ def init_db():
         print("   - 4 Kelas")
         print("   - 5 Siswa")
         print(f"   - {len(kata_list)} Kalimat untuk tes mengetik")
-        print("   - PIN Admin: 1234")
+        print("   - PIN Admin: 098123")
         
     finally:
         db.close()

@@ -136,7 +136,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     
     # Auto-fix if admin missing (e.g. existing DB from older version)
     if not admin:
-        pin_bytes = "1234".encode('utf-8')
+        pin_bytes = "098123".encode('utf-8')
         pin_hash = bcrypt.hashpw(pin_bytes, bcrypt.gensalt()).decode('utf-8')
         admin = AdminAccount(pin_hash=pin_hash, nama="Admin")
         db.add(admin)
